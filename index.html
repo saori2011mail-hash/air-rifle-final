@@ -742,17 +742,14 @@
             };
 
             // Function to toggle keypad display (and update button text)
-            const toggleKeypadDisplay = (forceShow = false) => {
+            // No longer uses forceShow, as focus will not automatically show keypad.
+            const toggleKeypadDisplay = () => {
                 // Get the keypad sections
                 const integerSection = numericKeypad.querySelector('.integer-section');
                 const decimalSection = numericKeypad.querySelector('.decimal-section');
                 const keypadControls = numericKeypad.querySelector('.keypad-controls'); // This section always contains the toggle button
 
-                if (forceShow) { // If true, force keypad to be visible (e.g., when an input is focused)
-                    keypadVisible = true;
-                } else { // If false, toggle visibility (e.g., when the hide/show button is clicked)
-                    keypadVisible = !keypadVisible;
-                }
+                keypadVisible = !keypadVisible; // Toggle visibility state
 
                 if (keypadVisible) {
                     // Show full keypad
@@ -1087,6 +1084,51 @@
                 }
             };
 
+            // Function to handle moving to the next input
+            const moveToNextInput = () => {
+                if (!currentFocusedInput || currentFocusedInput.disabled) {
+                    return;
+                }
+
+                // Normalize the current input value before moving
+                let value = parseFloat(currentFocusedInput.value);
+                if (isNaN(value) || currentFocusedInput.value === '') {
+                    currentFocusedInput.value = '';
+                } else {
+                    if (value < 0) value = 0;
+                    if (value > 10.9) value = 10.9;
+                    currentFocusedInput.value = value.toFixed(1);
+                }
+                saveAllData(); 
+                updateAllScoresAndRanks();
+
+                // Find the next enabled input in the defined sequence
+                const currentInputSelector = `[data-seat="${currentFocusedInput.dataset.seat}"][data-shot="${currentFocusedInput.dataset.shot}"]`;
+                let currentIndex = inputSequence.indexOf(currentInputSelector);
+                
+                let nextInput = null;
+                let nextIndex = currentIndex + 1;
+
+                while (nextIndex < inputSequence.length) {
+                    const selector = inputSequence[nextIndex];
+                    const potentialNextInput = document.querySelector(selector);
+                    if (potentialNextInput && !potentialNextInput.disabled) {
+                        nextInput = potentialNextInput;
+                        break; 
+                    }
+                    nextIndex++; 
+                }
+
+                if (nextInput) {
+                    nextInput.focus();
+                    nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
+                } else {
+                    currentFocusedInput.blur(); 
+                    currentFocusedInput = null; // Clear focused input reference
+                }
+            };
+
+
             // --- Event Listeners and Initial Setup ---
 
             // Attach focus and input event listeners for shot inputs
@@ -1097,9 +1139,7 @@
 
                 input.addEventListener('focus', (event) => {
                     currentFocusedInput = event.target;
-                    // When an input is focused, always ensure the keypad is visible
-                    // and the focused input is scrolled into view.
-                    toggleKeypadDisplay(true); // Force keypad to be visible
+                    // When an input is focused, only scroll into view, do NOT automatically show the keypad
                     currentFocusedInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
                 
@@ -1128,28 +1168,31 @@
                 });
 
                 button.addEventListener('click', () => {
+                    // Check if an input is focused and enabled, or if it's the toggle button
                     if (!currentFocusedInput && button.id !== 'toggle-keypad-visibility') {
-                        // If no input is focused, and it's not the toggle button, do nothing
-                        return; 
+                        return; // If no input focused and it's not the toggle button, do nothing
                     }
-                    if (currentFocusedInput && currentFocusedInput.disabled) {
-                        // If an input is focused but disabled, and it's not the toggle button, do nothing
-                        if (button.id !== 'toggle-keypad-visibility') {
-                            return;
-                        }
+                    if (currentFocusedInput && currentFocusedInput.disabled && button.id !== 'toggle-keypad-visibility') {
+                        return; // If focused input is disabled and it's not the toggle button, do nothing
                     }
 
                     const key = button.dataset.key;
 
-                    // Handle the new toggle visibility button
+                    // Handle the toggle visibility button
                     if (button.id === 'toggle-keypad-visibility') {
-                        toggleKeypadDisplay();
-                        // If keypad is hidden, blur the current input so it doesn't try to scroll.
+                        toggleKeypadDisplay(); // Call toggle function without forceShow
+                        // If keypad is hidden/minimized, blur the current input so it doesn't try to scroll.
                         if (!keypadVisible && currentFocusedInput) {
                             currentFocusedInput.blur();
                             currentFocusedInput = null; // Clear focused input reference
                         }
                         return; // Stop further processing for the toggle button
+                    }
+
+                    // Handle Enter button click
+                    if (key === 'enter') {
+                        moveToNextInput();
+                        return; 
                     }
 
                     // Proceed with other keypad button logic only if an input is focused and enabled
@@ -1167,43 +1210,6 @@
                         }
                     } else if (key === 'clear') {
                         currentFocusedInput.value = '';
-                    } else if (key === 'enter') {
-                        let value = parseFloat(currentFocusedInput.value);
-                        if (isNaN(value) || currentFocusedInput.value === '') {
-                            currentFocusedInput.value = '';
-                        } else {
-                            if (value < 0) value = 0;
-                            if (value > 10.9) value = 10.9;
-                            currentFocusedInput.value = value.toFixed(1);
-                        }
-                        saveAllData(); 
-                        updateAllScoresAndRanks();
-
-                        // Find the next enabled input in the defined sequence
-                        const currentInputSelector = `[data-seat="${currentFocusedInput.dataset.seat}"][data-shot="${currentFocusedInput.dataset.shot}"]`;
-                        let currentIndex = inputSequence.indexOf(currentInputSelector);
-                        
-                        let nextInput = null;
-                        let nextIndex = currentIndex + 1;
-
-                        while (nextIndex < inputSequence.length) {
-                            const selector = inputSequence[nextIndex];
-                            const potentialNextInput = document.querySelector(selector);
-                            if (potentialNextInput && !potentialNextInput.disabled) {
-                                nextInput = potentialNextInput;
-                                break; 
-                            }
-                            nextIndex++; 
-                        }
-
-                        if (nextInput) {
-                            nextInput.focus();
-                            nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
-                        } else {
-                            currentFocusedInput.blur(); 
-                            currentFocusedInput = null; // Clear focused input reference
-                        }
-                        return; 
                     } else if (key.startsWith('.')) { // Decimal buttons (.0 to .9)
                         let integerPart = currentValue.split('.')[0]; 
                         if (integerPart === '') { 
@@ -1229,6 +1235,15 @@
                 });
             });
 
+            // Add event listener for keyboard Enter key
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && currentFocusedInput && currentFocusedInput.classList.contains('shot-input') && !currentFocusedInput.disabled) {
+                    event.preventDefault(); // Prevent default Enter key behavior (e.g., submitting a form or new line)
+                    moveToNextInput();
+                }
+            });
+
+
             // Add event listener for the new reset button
             resetScoresButton.addEventListener('click', resetAllScores);
 
@@ -1238,13 +1253,40 @@
             loadKeypadVisibilityState(); // Load keypad visibility state
 
             // Set initial keypad display based on loaded state
-            // Explicitly call toggleKeypadDisplay without forceShow to apply the correct initial state
-            toggleKeypadDisplay(); // This will apply the correct state based on `keypadVisible`
+            // Call toggleKeypadDisplay to initialize the keypad state correctly
+            // If keypadVisible is true (default or loaded), it will set to '▼非表示'.
+            // If keypadVisible is false (loaded from prior session), it will set to '▲テンキー表示'.
+            if (keypadVisible) { // If it should start visible (full)
+                numericKeypad.classList.remove('minimized-keypad');
+                numericKeypad.style.display = 'grid';
+                numericKeypad.querySelector('.integer-section').style.display = 'grid';
+                numericKeypad.querySelector('.decimal-section').style.display = 'grid';
+                numericKeypad.querySelector('.keypad-controls').style.display = 'grid';
+                numericKeypad.querySelectorAll('.keypad-controls .keypad-button').forEach(btn => btn.style.display = 'flex');
+                toggleKeypadButton.textContent = '▼非表示';
+            } else { // If it should start minimized
+                numericKeypad.classList.add('minimized-keypad');
+                numericKeypad.style.display = 'flex';
+                numericKeypad.querySelector('.integer-section').style.display = 'none';
+                numericKeypad.querySelector('.decimal-section').style.display = 'none';
+                // Ensure only the toggle button is visible in controls when minimized
+                numericKeypad.querySelector('.keypad-controls').style.display = 'block';
+                numericKeypad.querySelectorAll('.keypad-controls .keypad-button').forEach(btn => {
+                    if (btn.id !== 'toggle-keypad-visibility') {
+                        btn.style.display = 'none';
+                    } else {
+                        btn.style.display = 'flex';
+                    }
+                });
+                toggleKeypadButton.textContent = '▲テンキー表示';
+            }
+
+            adjustBodyPadding(); // Adjust padding after initial display setup
+            window.addEventListener('resize', adjustBodyPadding); 
+            window.addEventListener('orientationchange', adjustBodyPadding);
 
             // updateAllScoresAndRanks needs to be called after loadAllData to refresh the UI with loaded data
             updateAllScoresAndRanks();
-            window.addEventListener('resize', adjustBodyPadding); 
-            window.addEventListener('orientationchange', adjustBodyPadding);
 
         });
     </script>
