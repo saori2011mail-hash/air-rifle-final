@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10mエアライフル決勝スコアシート</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            padding: 20px;
+            /* テンキーのスペースを確保するため、最小限のパディングを設定し、JSで動的に調整 */
+            padding-bottom: 20px; 
+            transition: padding-bottom 0.3s ease-out; /* スムーズなアニメーション */
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Allow horizontal scrolling on small screens */
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1000px; /* Ensure table is wide enough for all columns */
+        }
+        th, td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap; /* Prevent wrapping for headers */
+        }
+        th {
+            background-color: #1e3a8a; /* Dark blue for headers */
+            color: #ffffff;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        td {
+            background-color: #f8fafc;
+        }
+        tr:nth-child(even) td {
+            background-color: #eef2f6; /* Light gray for even rows */
+        }
+        /* スコア入力フィールドのスタイル調整 */
+        input[type="text"].shot-input {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            -moz-appearance: textfield;
+            font-weight: bold;
+        }
+        input[type="text"].shot-input::-webkit-outer-spin-button,
+        input[type="text"].shot-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .read-only {
+            background-color: #e2e8f0;
+            font-weight: bold;
+        }
+        /* 順位確定時のグレーアウトスタイル */
+        .eliminated {
+            background-color: #e0e0e0 !important;
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        /* 最終順位のメダルカラー (削除済み) */
+        /* .medal-gold {
+            background-color: #ffc107 !important;
+        }
+        .medal-silver {
+            background-color: #c0c0c0 !important;
+        }
+        .medal-bronze {
+            background-color: #cd7f32 !important;
+        } */
+        
+        /* Sticky Column Styles */
+        .sticky-col {
+            position: sticky;
+            z-index: 15; /* Data cells sticky, higher than default, lower than header */
+        }
+        .sticky-col.bg-default-odd {
+            background-color: #f8fafc;
+        }
+        tr:nth-child(even) .sticky-col.bg-default-even {
+            background-color: #eef2f6;
+        }
+        thead .sticky-col {
+            background-color: #1e3a8a; /* Header background */
+            z-index: 20; /* Header sticky, highest z-index */
+        }
+
+        .col-seat {
+            width: 60px;
+            min-width: 60px;
+            left: 0;
+        }
+        .col-name {
+            width: 150px;
+            min-width: 150px;
+            left: 60px;
+        }
+        .col-affiliation {
+            width: 150px;
+            min-width: 150px;
+            left: 210px;
+        }
+        .col-final-total {
+            width: 100px;
+            min-width: 100px;
+            left: 360px;
+        }
+        .col-rank {
+            width: 60px;
+            min-width: 60px;
+            left: 460px;
+        }
+
+        /* Numeric Keypad Styles */
+        #numeric-keypad {
+            position: fixed;
+            bottom: 0; /* 画面下部に固定 */
+            left: 0;
+            width: 100%; /* 横幅いっぱいに広げる */
+            max-width: none; /* 最大幅の制限を解除 */
+            background-color: #333;
+            padding: 10px; /* パディングを調整 */
+            border-radius: 0; /* 下部に固定されるので角丸は不要 */
+            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.3); /* 上部に影 */
+            z-index: 1000;
+            display: grid; /* Gridレイアウトに変更 */
+            grid-template-areas:
+                "integer-section"
+                "decimal-section"
+                "controls"; /* 縦にセクションを配置 */
+            gap: 8px; /* セクション間の隙間 */
+            animation: slideUpKeypad 0.5s ease-out forwards;
+        }
+
+        @keyframes slideUpKeypad {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+
+        .keypad-section { /* General style for grid sections within keypad */
+            display: grid;
+            gap: 8px; /* ボタン間の隙間 */
+            align-items: center;
+        }
+
+        .integer-section {
+            grid-area: integer-section;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); /* 0-10, 自動調整 */
+        }
+        .decimal-section {
+            grid-area: decimal-section;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); /* .0-.9, 自動調整 */
+        }
+        .keypad-controls {
+            grid-area: controls;
+            grid-template-columns: repeat(4, 1fr); /* Del, Clear, Hide/Show, Enter */
+        }
+        
+        .keypad-button {
+            background-color: #555;
+            color: white;
+            padding: 12px 0; /* ボタンの高さを調整 */
+            border-radius: 8px;
+            font-size: 1.3em; /* フォントサイズを調整 */
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .keypad-button:hover {
+            background-color: #777;
+        }
+        .keypad-button:active {
+            transform: scale(0.98);
+        }
+        .keypad-button.action-button {
+            background-color: #007bff;
+        }
+        .keypad-button.action-button:hover {
+            background-color: #0056b3;
+        }
+        .keypad-button.clear-button {
+            background-color: #dc3545;
+        }
+        .keypad-button.clear-button:hover {
+            background-color: #c82333;
+        }
+        .keypad-button.enter-button {
+            background-color: #28a745;
+        }
+        .keypad-button.enter-button:hover {
+            background-color: #218838;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            th, td {
+                padding: 8px 6px;
+                font-size: 0.8em;
+            }
+            input[type="text"].shot-input {
+                width: 50px;
+                padding: 4px;
+            }
+            #numeric-keypad {
+                padding: 8px;
+                gap: 6px;
+            }
+            .keypad-button {
+                font-size: 1.1em;
+                padding: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-start min-h-screen py-8">
+    <div class="container rounded-xl shadow-lg">
+        <h1 class="text-3xl font-extrabold text-center mb-6 text-blue-900">10mエアライフル決勝スコアシート</h1>
+        <div class="overflow-x-auto rounded-lg shadow-inner">
+            <table class="w-full text-sm text-left text-gray-700">
+                <thead class="text-xs uppercase bg-blue-900 text-white rounded-t-lg">
+                    <tr>
+                        <th scope="col" class="py-3 px-2 rounded-tl-lg sticky-col col-seat">射座</th>
+                        <th scope="col" class="py-3 px-2 sticky-col col-name">氏名</th>
+                        <th scope="col" class="py-3 px-2 sticky-col col-affiliation">所属</th>
+                        <th scope="col" class="py-3 px-2 bg-blue-900 sticky-col col-final-total">最終合計</th>
+                        <th scope="col" class="py-3 px-2 rounded-tr-lg sticky-col col-rank">順位</th>
+                        <th scope="col" class="py-3 px-2">第1S 1</th>
+                        <th scope="col" class="py-3 px-2">第1S 2</th>
+                        <th scope="col" class="py-3 px-2">第1S 3</th>
+                        <th scope="col" class="py-3 px-2">第1S 4</th>
+                        <th scope="col" class="py-3 px-2">第1S 5</th>
+                        <th scope="col" class="py-3 px-2 bg-blue-800">第1S (5発)</th>
+                        <th scope="col" class="py-3 px-2">第2S 1</th>
+                        <th scope="col" class="py-3 px-2">第2S 2</th>
+                        <th scope="col" class="py-3 px-2">第2S 3</th>
+                        <th scope="col" class="py-3 px-2">第2S 4</th>
+                        <th scope="col" class="py-3 px-2">第2S 5</th>
+                        <th scope="col" class="py-3 px-2 bg-blue-800">第2S (5発)</th>
+                        <th scope="col" class="py-3 px-2">S.S. 1</th>
+                        <th scope="col" class="py-3 px-2">S.S. 2</th>
+                        <th scope="col" class="py-3 px-2">S.S. 3</th>
+                        <th scope="col" class="py-3 px-2">S.S. 4</th>
+                        <th scope="col" class="py-3 px-2">S.S. 5</th>
+                        <th scope="col" class="py-3 px-2">S.S. 6</th>
+                        <th scope="col" class="py-3 px-2">S.S. 7</th>
+                        <th scope="col" class="py-3 px-2">S.S. 8</th>
+                        <th scope="col" class="py-3 px-2">S.S. 9</th>
+                        <th scope="col" class="py-3 px-2">S.S. 10</th>
+                        <th scope="col" class="py-3 px-2">S.S. 11</th>
+                        <th scope="col" class="py-3 px-2">S.S. 12</th>
+                        <th scope="col" class="py-3 px-2">S.S. 13</th>
+                        <th scope="col" class="py-3 px-2">S.S. 14</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Row for Shooter A -->
+                    <tr id="shooter-A" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-odd">A</td>
+                        <td class="sticky-col col-name bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="A" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="A" data-type="affiliation"></td>
+                        <!-- Final Total (read-only) -->
+                        <td class="read-only sticky-col col-final-total bg-default-odd" id="final-total-A"></td>
+                        <!-- Rank (read-only) -->
+                        <td class="read-only sticky-col col-rank bg-default-odd" id="rank-A"></td>
+                        <!-- Series 1 (5 shots) -->
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s1_5"></td>
+                        <!-- Series 1 (5 shots) Subtotal -->
+                        <td class="read-only" id="total-s1-A"></td>
+                        <!-- Series 2 (5 shots) -->
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_5"></td>
+                        <!-- Series 2 (5 shots) Subtotal -->
+                        <td class="read-only" id="total-s2-A"></td>
+                        <!-- Single Shots -->
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="A" data-shot="ss14"></td>
+                    </tr>
+                    <!-- Repeat for Shooter B to H -->
+                    <tr id="shooter-B" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-even">B</td>
+                        <td class="sticky-col col-name bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="B" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="B" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-even" id="final-total-B"></td>
+                        <td class="read-only sticky-col col-rank bg-default-even" id="rank-B"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-B"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-B"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="B" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-C" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-odd">C</td>
+                        <td class="sticky-col col-name bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="C" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="C" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-odd" id="final-total-C"></td>
+                        <td class="read-only sticky-col col-rank bg-default-odd" id="rank-C"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-C"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-C"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="C" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-D" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-even">D</td>
+                        <td class="sticky-col col-name bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="D" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="D" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-even" id="final-total-D"></td>
+                        <td class="read-only sticky-col col-rank bg-default-even" id="rank-D"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-D"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-D"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="D" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-E" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-odd">E</td>
+                        <td class="sticky-col col-name bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="E" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="E" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-odd" id="final-total-E"></td>
+                        <td class="read-only sticky-col col-rank bg-default-odd" id="rank-E"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-E"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-E"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="E" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-F" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-even">F</td>
+                        <td class="sticky-col col-name bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="F" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="F" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-even" id="final-total-F"></td>
+                        <td class="read-only sticky-col col-rank bg-default-even" id="rank-F"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-F"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-F"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="F" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-G" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-odd">G</td>
+                        <td class="sticky-col col-name bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="G" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-odd"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="G" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-odd" id="final-total-G"></td>
+                        <td class="read-only sticky-col col-rank bg-default-odd" id="rank-G"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-G"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-G"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="G" data-shot="ss14"></td>
+                    </tr>
+                    <tr id="shooter-H" class="hover:bg-gray-50">
+                        <td class="font-bold sticky-col col-seat bg-default-even">H</td>
+                        <td class="sticky-col col-name bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="氏名" data-seat="H" data-type="name"></td>
+                        <td class="sticky-col col-affiliation bg-default-even"><input type="text" class="w-full px-2 py-1 border rounded-md" placeholder="所属" data-seat="H" data-type="affiliation"></td>
+                        <td class="read-only sticky-col col-final-total bg-default-even" id="final-total-H"></td>
+                        <td class="read-only sticky-col col-rank bg-default-even" id="rank-H"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s1_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s1_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s1_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s1_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s1_5"></td>
+                        <td class="read-only" id="total-s1-H"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s2_1"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s2_2"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s2_3"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s2_4"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="s2_5"></td>
+                        <td class="read-only" id="total-s2-H"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss1"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss2"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss3"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss4"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss5"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss6"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss7"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss8"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss9"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss10"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss11"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss12"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss13"></td>
+                        <td><input type="text" class="shot-input" data-seat="H" data-shot="ss14"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Numeric Keypad HTML -->
+    <div id="numeric-keypad">
+        <div class="keypad-section integer-section">
+            <!-- Integer buttons (0-10) - '0' is now first -->
+            <div class="keypad-button" data-key="0">0</div>
+            <div class="keypad-button" data-key="1">1</div>
+            <div class="keypad-button" data-key="2">2</div>
+            <div class="keypad-button" data-key="3">3</div>
+            <div class="keypad-button" data-key="4">4</div>
+            <div class="keypad-button" data-key="5">5</div>
+            <div class="keypad-button" data-key="6">6</div>
+            <div class="keypad-button" data-key="7">7</div>
+            <div class="keypad-button" data-key="8">8</div>
+            <div class="keypad-button" data-key="9">9</div>
+            <div class="keypad-button" data-key="10">10</div>
+        </div>
+
+        <div class="keypad-section decimal-section">
+            <!-- Decimal buttons (.0-.9) -->
+            <div class="keypad-button" data-key=".0">.0</div>
+            <div class="keypad-button" data-key=".1">.1</div>
+            <div class="keypad-button" data-key=".2">.2</div>
+            <div class="keypad-button" data-key=".3">.3</div>
+            <div class="keypad-button" data-key=".4">.4</div>
+            <div class="keypad-button" data-key=".5">.5</div>
+            <div class="keypad-button" data-key=".6">.6</div>
+            <div class="keypad-button" data-key=".7">.7</div>
+            <div class="keypad-button" data-key=".8">.8</div>
+            <div class="keypad-button" data-key=".9">.9</div>
+        </div>
+
+        <div class="keypad-controls keypad-section">
+            <div class="keypad-button action-button" data-key="del">Del</div>
+            <div class="keypad-button clear-button" data-key="clear">Clear</div>
+            <div class="keypad-button action-button" id="toggle-keypad-visibility">非表示</div> <!-- New button for visibility toggle -->
+            <div class="keypad-button enter-button" data-key="enter">Enter</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const seats = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+            const shotInputs = document.querySelectorAll('.shot-input');
+            const genericInputs = document.querySelectorAll('input[data-type="name"], input[data-type="affiliation"]');
+            const numericKeypad = document.getElementById('numeric-keypad');
+            const toggleKeypadButton = document.getElementById('toggle-keypad-visibility'); // Get the new toggle button
+            
+            let currentFocusedInput = null;
+            let isKeypadClicking = false; // Flag to ignore blur event when keypad is clicked
+
+            // Key for localStorage
+            const KEYPAD_STORAGE_KEY = 'airRifleScoreData';
+            const KEYPAD_VISIBILITY_KEY = 'keypadVisible'; // Key for keypad visibility state
+
+            // Add a state for keypad visibility, default to true
+            let keypadVisible = true; 
+
+            // --- Define the input sequence array ---
+            const inputSequence = [];
+            const s1Shots = ['s1_1', 's1_2', 's1_3', 's1_4', 's1_5'];
+            const s2Shots = ['s2_1', 's2_2', 's2_3', 's2_4', 's2_5'];
+            const ssShots = Array.from({ length: 14 }, (_, i) => `ss${i + 1}`);
+
+            // === Generate the input sequence for Series 1 & 2 (Player by Player) ===
+            // This means: Player A (S1-1 to S1-5), then Player B (S1-1 to S1-5), ..., Player H (S1-1 to S1-5)
+            // Then: Player A (S2-1 to S2-5), then Player B (S2-1 to S2-5), ..., Player H (S2-1 to S2-5)
+            seats.forEach(seat => {
+                s1Shots.forEach(shot => {
+                    inputSequence.push(`[data-seat="${seat}"][data-shot="${shot}"]`);
+                });
+            });
+
+            seats.forEach(seat => {
+                s2Shots.forEach(shot => {
+                    inputSequence.push(`[data-seat="${seat}"][data-shot="${shot}"]`);
+                });
+            });
+
+            // === Generate the input sequence for Single Shots (Shot by Shot) ===
+            // This means: SS1 (Player A to H), then SS2 (Player A to H), ..., SS14 (Player A to H)
+            ssShots.forEach(shot => {
+                seats.forEach(seat => {
+                    inputSequence.push(`[data-seat="${seat}"][data-shot="${shot}"]`);
+                });
+            });
+            // ======================================
+
+
+            // Function to save all current data (scores, names, affiliations) to localStorage
+            const saveAllData = () => {
+                const dataToSave = {};
+                seats.forEach(seat => {
+                    const shooterRow = document.getElementById(`shooter-${seat}`);
+                    const nameInput = shooterRow.querySelector(`input[data-type="name"]`);
+                    const affiliationInput = shooterRow.querySelector(`input[data-type="affiliation"]`);
+
+                    const scores = {};
+                    shooterRow.querySelectorAll('.shot-input').forEach(input => {
+                        scores[input.dataset.shot] = input.value; // Save raw value
+                    });
+
+                    dataToSave[seat] = {
+                        name: nameInput ? nameInput.value : '',
+                        affiliation: affiliationInput ? affiliationInput.value : '',
+                        shots: scores
+                    };
+                });
+                localStorage.setItem(KEYPAD_STORAGE_KEY, JSON.stringify(dataToSave));
+            };
+
+            // Function to load all data from localStorage
+            const loadAllData = () => {
+                const savedData = localStorage.getItem(KEYPAD_STORAGE_KEY);
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    seats.forEach(seat => {
+                        if (parsedData[seat]) {
+                            const shooterRow = document.getElementById(`shooter-${seat}`);
+                            const nameInput = shooterRow.querySelector(`input[data-type="name"]`);
+                            const affiliationInput = shooterRow.querySelector(`input[data-type="affiliation"]`);
+
+                            if (nameInput) nameInput.value = parsedData[seat].name || '';
+                            if (affiliationInput) affiliationInput.value = parsedData[seat].affiliation || '';
+
+                            if (parsedData[seat].shots) {
+                                for (const shotKey in parsedData[seat].shots) {
+                                    const input = shooterRow.querySelector(`.shot-input[data-shot="${shotKey}"]`);
+                                    if (input) {
+                                        input.value = parsedData[seat].shots[shotKey];
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            };
+
+            // Function to save keypad visibility state to localStorage
+            const saveKeypadVisibilityState = () => {
+                localStorage.setItem(KEYPAD_VISIBILITY_KEY, keypadVisible);
+            };
+
+            // Function to load keypad visibility state from localStorage
+            const loadKeypadVisibilityState = () => {
+                const savedState = localStorage.getItem(KEYPAD_VISIBILITY_KEY);
+                if (savedState !== null) {
+                    keypadVisible = savedState === 'true'; // Convert string to boolean
+                }
+            };
+
+            // Function to toggle keypad display (and update button text)
+            const toggleKeypadDisplay = (forceShow = false) => {
+                if (forceShow) { // If true, force keypad to be visible (e.g., when an input is focused)
+                    keypadVisible = true;
+                } else { // If false, toggle visibility (e.g., when the hide/show button is clicked)
+                    keypadVisible = !keypadVisible;
+                }
+
+                if (keypadVisible) {
+                    numericKeypad.style.display = 'grid'; // Show keypad
+                    toggleKeypadButton.textContent = '非表示';
+                } else {
+                    numericKeypad.style.display = 'none'; // Hide keypad
+                    toggleKeypadButton.textContent = '表示';
+                }
+                adjustBodyPadding(); // Always adjust padding after changing keypad visibility
+                saveKeypadVisibilityState(); // Save the current state to localStorage
+            };
+
+            // Function: Adjust body padding based on keypad height
+            const adjustBodyPadding = () => {
+                if (keypadVisible) {
+                    // Offset height for Android soft keyboard issues if any
+                    // For iOS, innerHeight is usually reliable.
+                    const keypadHeight = numericKeypad.offsetHeight; 
+                    const buffer = 10; // Extra buffer to prevent cutoff
+                    document.body.style.paddingBottom = `${keypadHeight + buffer}px`; 
+                } else {
+                    document.body.style.paddingBottom = `20px`; // Minimal padding when hidden
+                }
+                // Scroll the currently focused input into view if it exists
+                if (currentFocusedInput) {
+                    currentFocusedInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+                }
+            };
+
+            // Function: Get shooter scores (safely handles NaN and empty strings)
+            const getShooterScores = (seat) => {
+                const scores = {};
+                document.querySelectorAll(`.shot-input[data-seat="${seat}"]`).forEach(input => {
+                    let value = parseFloat(input.value);
+                    if (isNaN(value) || input.value.trim() === '') {
+                        value = 0;
+                    }
+                    scores[input.dataset.shot] = value;
+                });
+                return scores;
+            };
+
+            // Function: Update all totals and ranks
+            const updateAllScoresAndRanks = () => {
+                const shooterData = [];
+
+                seats.forEach(seat => {
+                    const scores = getShooterScores(seat);
+                    let currentTotal = 0;
+
+                    let totalS1 = 0;
+                    for (let i = 1; i <= 5; i++) {
+                        totalS1 += scores[`s1_${i}`];
+                    }
+                    document.getElementById(`total-s1-${seat}`).textContent = totalS1.toFixed(1);
+                    currentTotal += totalS1;
+
+                    let totalS2 = 0;
+                    for (let i = 1; i <= 5; i++) {
+                        totalS2 += scores[`s2_${i}`];
+                    }
+                    document.getElementById(`total-s2-${seat}`).textContent = totalS2.toFixed(1);
+                    currentTotal += totalS2;
+
+                    if (isNaN(currentTotal)) {
+                        currentTotal = 0; 
+                    }
+
+                    const total10 = currentTotal; 
+                    currentTotal += scores['ss1'] + scores['ss2'];
+                    const total12 = currentTotal; 
+                    currentTotal += scores['ss3'] + scores['ss4'];
+                    const total14 = currentTotal;
+                    currentTotal += scores['ss5'] + scores['ss6'];
+                    const total16 = currentTotal;
+                    currentTotal += scores['ss7'] + scores['ss8'];
+                    const total18 = currentTotal;
+                    currentTotal += scores['ss9'] + scores['ss10'];
+                    const total20 = currentTotal;
+                    currentTotal += scores['ss11'] + scores['ss12'];
+                    const total22 = currentTotal;
+                    currentTotal += scores['ss13'] + scores['ss14'];
+                    const finalTotal = currentTotal;
+
+                    document.getElementById(`final-total-${seat}`).textContent = finalTotal.toFixed(1);
+
+                    shooterData.push({
+                        seat: seat,
+                        total12: total12,
+                        total14: total14,
+                        total16: total16,
+                        total18: total18,
+                        total20: total20,
+                        total22: total22,
+                        finalTotal: finalTotal,
+                        rank: null, 
+                        isRanked: false 
+                    });
+                });
+
+                // Determine official ranks and eliminate shooters based on their current totals
+                determineRankAndEliminate(shooterData, 'total12', 8);
+                determineRankAndEliminate(shooterData, 'total14', 7);
+                determineRankAndEliminate(shooterData, 'total16', 6);
+                determineRankAndEliminate(shooterData, 'total18', 5);
+                determineRankAndEliminate(shooterData, 'total20', 4);
+                determineRankAndEliminate(shooterData, 'total22', 3);
+
+                // Determine 1st and 2nd place from remaining (unranked) finalists
+                const unrankedFinalists = shooterData.filter(s => !s.isRanked).sort((a, b) => b.finalTotal - a.finalTotal);
+                if (unrankedFinalists.length === 2) {
+                    unrankedFinalists[0].rank = 1;
+                    unrankedFinalists[0].isRanked = true;
+                    unrankedFinalists[1].rank = 2;
+                    unrankedFinalists[1].isRanked = true;
+                }
+                
+                // Sort all shooters (including those ranked/eliminated) for display purposes
+                const allShootersForDisplay = [...shooterData].sort((a, b) => {
+                    // Prioritize officially ranked players (lower rank number is better)
+                    if (a.isRanked && b.isRanked) {
+                        return a.rank - b.rank;
+                    }
+                    // If one is ranked and the other is not, the ranked one (with a higher rank number like 3-8) goes lower
+                    if (a.isRanked) return 1; 
+                    if (b.isRanked) return -1;
+                    // If neither is ranked, sort by finalTotal (descending: higher score = better rank)
+                    return b.finalTotal - a.finalTotal;
+                });
+
+                // Determine if all shooters have completed their final (24th) shot
+                const allShootersCompletedFinalShot = seats.every(seat => {
+                    const ss14Input = document.querySelector(`#shooter-${seat} input[data-shot="ss14"]`);
+                    // Check if ss14 input exists and has a non-empty value
+                    return ss14Input && ss14Input.value.trim() !== '';
+                });
+
+
+                // Assign display ranks (1-based) and update UI (colors, elimination status)
+                let currentDisplayRank = 0; 
+                let lastScoreForDisplayRank = -Infinity; 
+                let tiedPlayersCount = 0;
+
+                allShootersForDisplay.forEach((shooter, index) => {
+                    const row = document.getElementById(`shooter-${shooter.seat}`);
+                    const rankCell = document.getElementById(`rank-${shooter.seat}`);
+                    const finalTotalCell = document.getElementById(`final-total-${shooter.seat}`); // Get final total cell
+
+                    // --- RESET ALL SHOT INPUTS TO ENABLED STATE FOR THIS SHOOTER BEFORE APPLYING NEW DISABLED STATES ---
+                    row.querySelectorAll('.shot-input').forEach(input => {
+                        input.disabled = false; // Re-enable all inputs first
+                    });
+                    // --- END RESET ---
+
+                    // Remove existing styling classes (including medal colors)
+                    row.classList.remove('eliminated', 'medal-gold', 'medal-silver', 'medal-bronze');
+                    
+                    // --- Calculate and display score difference ---
+                    let scoreDifferenceText = '';
+                    if (index > 0) { // For all shooters except the first one
+                        const shooterAboveTotal = allShootersForDisplay[index - 1].finalTotal;
+                        const difference = shooter.finalTotal - shooterAboveTotal;
+                        scoreDifferenceText = ` (${difference.toFixed(1)})`;
+                    }
+                    finalTotalCell.textContent = `${shooter.finalTotal.toFixed(1)}${scoreDifferenceText}`;
+                    // --- End score difference calculation ---
+
+                    if (shooter.isRanked) {
+                        rankCell.textContent = shooter.rank; // Always display assigned rank
+
+                        // If all shooters completed final shot, and rank is 4 or more, apply elimination styling
+                        if (allShootersCompletedFinalShot && shooter.rank >= 4) { 
+                            row.classList.add('eliminated');
+                        } else if (!allShootersCompletedFinalShot && shooter.rank >= 3) { // Intermediate state, gray out if eliminated
+                            row.classList.add('eliminated');
+                        }
+                        // Medal colors are no longer applied here.
+                    } else {
+                        // Provisional rank for active shooters (not yet officially ranked/eliminated)
+                        // These don't get special styling beyond the default row.
+                        if (shooter.finalTotal < lastScoreForDisplayRank) {
+                            currentDisplayRank += tiedPlayersCount;
+                            tiedPlayersCount = 1;
+                        } else if (shooter.finalTotal === lastScoreForDisplayRank) {
+                            tiedPlayersCount++;
+                        } else {
+                            tiedPlayersCount = 1;
+                        }
+                        lastScoreForDisplayRank = shooter.finalTotal;
+                        rankCell.textContent = currentDisplayRank + 1; // +1 because rank is 1-based
+                    }
+
+                    // Disable subsequent input fields for officially eliminated shooters
+                    // This logic should still apply based on current `shooter.rank` regardless of `allShootersCompletedFinalShot`
+                    // because players get eliminated *during* the match, not just at the very end.
+                    const disableShotsMap = {
+                        8: ['ss3', 'ss4', 'ss5', 'ss6', 'ss7', 'ss8', 'ss9', 'ss10', 'ss11', 'ss12', 'ss13', 'ss14'],
+                        7: ['ss5', 'ss6', 'ss7', 'ss8', 'ss9', 'ss10', 'ss11', 'ss12', 'ss13', 'ss14'],
+                        6: ['ss7', 'ss8', 'ss9', 'ss10', 'ss11', 'ss12', 'ss13', 'ss14'],
+                        5: ['ss9', 'ss10', 'ss11', 'ss12', 'ss13', 'ss14'],
+                        4: ['ss11', 'ss12', 'ss13', 'ss14'],
+                        3: ['ss13', 'ss14']
+                    };
+
+                    if (shooter.isRanked && shooter.rank > 0 && disableShotsMap[shooter.rank]) {
+                        disableShotsMap[shooter.rank].forEach(shotId => {
+                            const input = document.querySelector(`#shooter-${shooter.seat} input[data-shot="${shotId}"]`);
+                            if (input) {
+                                input.disabled = true;
+                                input.value = ''; // Clear value for disabled shots
+                            }
+                        });
+                    }
+                });
+            };
+
+            const determineRankAndEliminate = (shooters, totalKey, rankToDetermine) => {
+                const activeShooters = shooters.filter(s => !s.isRanked);
+
+                // Check if enough active shooters remain for this elimination stage
+                if (activeShooters.length !== rankToDetermine) {
+                    return; 
+                }
+
+                // Identify the specific shot that completes this stage for all active shooters
+                let targetShotId = '';
+                switch (totalKey) {
+                    case 'total12': targetShotId = 'ss2'; break;
+                    case 'total14': targetShotId = 'ss4'; break;
+                    case 'total16': targetShotId = 'ss6'; break;
+                    case 'total18': targetShotId = 'ss8'; break;
+                    case 'total20': targetShotId = 'ss10'; break;
+                    case 'total22': targetShotId = 'ss12'; break;
+                    default: break; 
+                }
+
+                // If a specific target shot is defined for this elimination stage, check if it's filled for all active players.
+                let allInputsForStageFilled = true;
+                if (targetShotId) {
+                    allInputsForStageFilled = activeShooters.every(shooter => {
+                        const input = document.querySelector(`[data-seat="${shooter.seat}"][data-shot="${targetShotId}"]`);
+                        return input && input.value.trim() !== ''; 
+                    });
+                }
+                
+                if (!allInputsForStageFilled) {
+                    return; 
+                }
+
+                // Sort active shooters by their current total (lowest score first) to find candidates for elimination
+                activeShooters.sort((a, b) => a[totalKey] - b[totalKey]);
+
+                const lowestScore = activeShooters[0][totalKey];
+                
+                // If all active shooters currently have 0 score, don't eliminate.
+                if (lowestScore === 0 && activeShooters.every(s => s[totalKey] === 0)) {
+                    return;
+                }
+
+                // Identify all shooters tied for the lowest score for elimination
+                const candidatesForElimination = activeShooters.filter(s => s[totalKey] === lowestScore);
+
+                // Assign the `rankToDetermine` to all tied lowest scorers, and mark them as ranked.
+                if (candidatesForElimination.length > 0) {
+                    candidatesForElimination.forEach(shooter => {
+                        if (!shooter.isRanked) { 
+                            shooter.rank = rankToDetermine;
+                            shooter.isRanked = true;
+                        }
+                    });
+                }
+            };
+
+            // --- Event Listeners and Initial Setup ---
+
+            // Attach focus and input event listeners for shot inputs
+            shotInputs.forEach(input => {
+                input.setAttribute('type', 'text');
+                input.setAttribute('inputmode', 'none'); // Hide native keyboard
+
+                input.addEventListener('focus', (event) => {
+                    currentFocusedInput = event.target;
+                    // When an input is focused, always ensure the keypad is visible
+                    // and the focused input is scrolled into view.
+                    toggleKeypadDisplay(true); // Force keypad to be visible
+                    currentFocusedInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+                input.addEventListener('input', saveAllData); // Save data on input change
+            });
+
+            // Attach input event listeners for name/affiliation fields
+            genericInputs.forEach(input => {
+                input.addEventListener('input', saveAllData);
+            });
+
+            // Numeric keypad button click event handling
+            numericKeypad.querySelectorAll('.keypad-button').forEach(button => {
+                button.addEventListener('mousedown', () => {
+                    isKeypadClicking = true; // Set flag to ignore blur
+                });
+
+                button.addEventListener('mouseup', () => {
+                    setTimeout(() => {
+                        isKeypadClicking = false; // Reset flag after click processing
+                    }, 50); 
+                });
+
+                button.addEventListener('click', () => {
+                    if (!currentFocusedInput && button.id !== 'toggle-keypad-visibility') {
+                        // If no input is focused, and it's not the toggle button, do nothing
+                        return; 
+                    }
+                    if (currentFocusedInput && currentFocusedInput.disabled) {
+                        // If an input is focused but disabled, and it's not the toggle button, do nothing
+                        if (button.id !== 'toggle-keypad-visibility') {
+                            return;
+                        }
+                    }
+
+                    const key = button.dataset.key;
+
+                    // Handle the new toggle visibility button
+                    if (button.id === 'toggle-keypad-visibility') {
+                        toggleKeypadDisplay();
+                        // If keypad is hidden, blur the current input so it doesn't try to scroll.
+                        if (!keypadVisible && currentFocusedInput) {
+                            currentFocusedInput.blur();
+                            currentFocusedInput = null; // Clear focused input reference
+                        }
+                        return; // Stop further processing for the toggle button
+                    }
+
+                    // Proceed with other keypad button logic only if an input is focused and enabled
+                    if (!currentFocusedInput || currentFocusedInput.disabled) {
+                        return; 
+                    }
+
+                    let currentValue = currentFocusedInput.value;
+
+                    if (key === 'del') {
+                        if (currentValue.includes('.')) {
+                            currentFocusedInput.value = currentValue.split('.')[0];
+                        } else {
+                            currentFocusedInput.value = '';
+                        }
+                    } else if (key === 'clear') {
+                        currentFocusedInput.value = '';
+                    } else if (key === 'enter') {
+                        let value = parseFloat(currentFocusedInput.value);
+                        if (isNaN(value) || currentFocusedInput.value === '') {
+                            currentFocusedInput.value = '';
+                        } else {
+                            if (value < 0) value = 0;
+                            if (value > 10.9) value = 10.9;
+                            currentFocusedInput.value = value.toFixed(1);
+                        }
+                        saveAllData(); 
+                        updateAllScoresAndRanks();
+
+                        // Find the next enabled input in the defined sequence
+                        const currentInputSelector = `[data-seat="${currentFocusedInput.dataset.seat}"][data-shot="${currentFocusedInput.dataset.shot}"]`;
+                        let currentIndex = inputSequence.indexOf(currentInputSelector);
+                        
+                        let nextInput = null;
+                        let nextIndex = currentIndex + 1;
+
+                        while (nextIndex < inputSequence.length) {
+                            const selector = inputSequence[nextIndex];
+                            const potentialNextInput = document.querySelector(selector);
+                            if (potentialNextInput && !potentialNextInput.disabled) {
+                                nextInput = potentialNextInput;
+                                break; 
+                            }
+                            nextIndex++; 
+                        }
+
+                        if (nextInput) {
+                            nextInput.focus();
+                            nextInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
+                        } else {
+                            currentFocusedInput.blur(); 
+                            currentFocusedInput = null; // Clear focused input reference
+                        }
+                        return; 
+                    } else if (key.startsWith('.')) { // Decimal buttons (.0 to .9)
+                        let integerPart = currentValue.split('.')[0]; 
+                        if (integerPart === '') { 
+                            integerPart = '0';
+                        }
+                        const newValue = integerPart + key;
+                        if (parseFloat(newValue) > 10.9) {
+                            if (integerPart === '10' && parseFloat(key) <= 0.9) {
+                                currentFocusedInput.value = '10' + key;
+                            }
+                        } else {
+                            currentFocusedInput.value = newValue;
+                        }
+                    } else { // Integer buttons (0 to 10)
+                        const intValue = parseInt(key, 10);
+                        if (intValue >= 0 && intValue <= 10) {
+                            currentFocusedInput.value = intValue.toString();
+                        }
+                    }
+                    saveAllData(); 
+                    updateAllScoresAndRanks();
+                });
+            });
+
+            // Initial setup on page load
+            loadAllData(); // Load any saved data first
+            loadKeypadVisibilityState(); // Load keypad visibility state
+
+            // Set initial keypad display based on loaded state
+            if (keypadVisible) {
+                numericKeypad.style.display = 'grid';
+                toggleKeypadButton.textContent = '非表示';
+            } else {
+                numericKeypad.style.display = 'none';
+                toggleKeypadButton.textContent = '表示';
+            }
+            adjustBodyPadding(); // Adjust padding after initial display setup
+            window.addEventListener('resize', adjustBodyPadding); 
+            window.addEventListener('orientationchange', adjustBodyPadding);
+        });
+    </script>
+</bod
+</html>
