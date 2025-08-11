@@ -1024,8 +1024,9 @@
 
             // Attach focus and input event listeners for shot inputs
             shotInputs.forEach(input => {
+                // Set input type to text and inputmode to none to hide native keyboard on mobile
                 input.setAttribute('type', 'text');
-                input.setAttribute('inputmode', 'none'); // Hide native keyboard
+                input.setAttribute('inputmode', 'none'); 
 
                 input.addEventListener('focus', (event) => {
                     currentFocusedInput = event.target;
@@ -1034,7 +1035,12 @@
                     toggleKeypadDisplay(true); // Force keypad to be visible
                     currentFocusedInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
-                input.addEventListener('input', saveAllData); // Save data on input change
+                
+                // Call saveAllData and updateAllScoresAndRanks on input change for both virtual keypad and physical keyboard
+                input.addEventListener('input', () => {
+                    saveAllData(); 
+                    updateAllScoresAndRanks();
+                });
             });
 
             // Attach input event listeners for name/affiliation fields
@@ -1150,8 +1156,9 @@
                             currentFocusedInput.value = intValue.toString();
                         }
                     }
-                    saveAllData(); 
-                    updateAllScoresAndRanks();
+                    // For keypad input, save and update are already called
+                    // No need to call saveAllData() or updateAllScoresAndRanks() here as it's handled by the 'input' event listener
+                    // which is now universally applied.
                 });
             });
 
