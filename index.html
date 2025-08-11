@@ -138,6 +138,36 @@
                 "controls"; /* 縦にセクションを配置 */
             gap: 8px; /* セクション間の隙間 */
             animation: slideUpKeypad 0.5s ease-out forwards;
+            /* Transition for keypad changes */
+            transition: all 0.3s ease-out; /* 全てのプロパティにスムーズなトランジションを適用 */
+        }
+
+        /* Minimized keypad styles */
+        #numeric-keypad.minimized-keypad {
+            display: flex; /* Change to flexbox for single button centering */
+            justify-content: center;
+            align-items: center;
+            width: auto; /* Shrink width to content */
+            padding: 5px 15px; /* Smaller padding */
+            bottom: 20px; /* Slightly off bottom for better look */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%); /* Center horizontally */
+            border-radius: 12px; /* Rounded corners for the button look */
+            background-color: #1e3a8a; /* Dark blue like header */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            /* Hide internal sections when minimized */
+            grid-template-areas: none; /* Remove grid areas */
+        }
+        #numeric-keypad.minimized-keypad .keypad-section:not(.keypad-controls) {
+            display: none; /* Hide integer and decimal sections */
+        }
+        #numeric-keypad.minimized-keypad .keypad-controls {
+            display: block; /* Ensure controls section is visible (becomes single column) */
+            width: auto; /* Fit content */
+            grid-template-columns: 1fr; /* Only one column for the reactivate button */
+        }
+        #numeric-keypad.minimized-keypad .keypad-controls .keypad-button:not(#toggle-keypad-visibility) {
+            display: none; /* Hide all buttons except toggle when minimized */
         }
 
         @keyframes slideUpKeypad {
@@ -229,6 +259,10 @@
                 font-size: 1.1em;
                 padding: 10px 0;
             }
+            /* Minimized keypad on small screens */
+            #numeric-keypad.minimized-keypad {
+                bottom: 10px; /* Adjust spacing for mobile */
+            }
         }
     </style>
 </head>
@@ -303,9 +337,7 @@
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_3"></td>
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_4"></td>
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="s2_5"></td>
-                        <!-- Series 2 (5 shots) Subtotal -->
                         <td class="read-only" id="total-s2-A"></td>
-                        <!-- Single Shots -->
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="ss1"></td>
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="ss2"></td>
                         <td><input type="text" class="shot-input" data-seat="A" data-shot="ss3"></td>
@@ -592,7 +624,7 @@
         <div class="keypad-controls keypad-section">
             <div class="keypad-button action-button" data-key="del">Del</div>
             <div class="keypad-button clear-button" data-key="clear">Clear</div>
-            <div class="keypad-button action-button" id="toggle-keypad-visibility">非表示</div> <!-- New button for visibility toggle -->
+            <div class="keypad-button action-button" id="toggle-keypad-visibility">▼非表示</div> <!-- Changed button text -->
             <div class="keypad-button enter-button" data-key="enter">Enter</div>
         </div>
     </div>
@@ -711,6 +743,11 @@
 
             // Function to toggle keypad display (and update button text)
             const toggleKeypadDisplay = (forceShow = false) => {
+                // Get the keypad sections
+                const integerSection = numericKeypad.querySelector('.integer-section');
+                const decimalSection = numericKeypad.querySelector('.decimal-section');
+                const keypadControls = numericKeypad.querySelector('.keypad-controls'); // This section always contains the toggle button
+
                 if (forceShow) { // If true, force keypad to be visible (e.g., when an input is focused)
                     keypadVisible = true;
                 } else { // If false, toggle visibility (e.g., when the hide/show button is clicked)
@@ -718,11 +755,37 @@
                 }
 
                 if (keypadVisible) {
-                    numericKeypad.style.display = 'grid'; // Show keypad
-                    toggleKeypadButton.textContent = '非表示';
+                    // Show full keypad
+                    numericKeypad.classList.remove('minimized-keypad');
+                    numericKeypad.style.display = 'grid'; // Re-enable grid layout
+                    integerSection.style.display = 'grid'; // Show integer buttons
+                    decimalSection.style.display = 'grid'; // Show decimal buttons
+                    
+                    // Show other control buttons
+                    keypadControls.style.display = 'grid'; // Restore grid for controls
+                    keypadControls.querySelectorAll('.keypad-button').forEach(btn => {
+                        btn.style.display = 'flex'; // Show all buttons in controls
+                    });
+
+                    toggleKeypadButton.textContent = '▼非表示'; // Change button text to "非表示"
                 } else {
-                    numericKeypad.style.display = 'none'; // Hide keypad
-                    toggleKeypadButton.textContent = '表示';
+                    // Minimize keypad
+                    numericKeypad.classList.add('minimized-keypad');
+                    numericKeypad.style.display = 'flex'; // Change to flex for single button centering
+                    integerSection.style.display = 'none'; // Hide integer buttons
+                    decimalSection.style.display = 'none'; // Hide decimal buttons
+
+                    // Only show the toggle button within controls
+                    keypadControls.style.display = 'block'; // Or flex, to contain just the button
+                    keypadControls.querySelectorAll('.keypad-button').forEach(btn => {
+                        if (btn.id !== 'toggle-keypad-visibility') {
+                            btn.style.display = 'none'; // Hide other control buttons
+                        } else {
+                            btn.style.display = 'flex'; // Ensure toggle button is visible
+                        }
+                    });
+                    
+                    toggleKeypadButton.textContent = '▲テンキー表示'; // Change button text to "テンキー表示"
                 }
                 adjustBodyPadding(); // Always adjust padding after changing keypad visibility
                 saveKeypadVisibilityState(); // Save the current state to localStorage
@@ -737,7 +800,11 @@
                     const buffer = 10; // Extra buffer to prevent cutoff
                     document.body.style.paddingBottom = `${keypadHeight + buffer}px`; 
                 } else {
-                    document.body.style.paddingBottom = `20px`; // Minimal padding when hidden
+                    // When minimized, the keypad height is smaller
+                    // We need to calculate this from the actual element when minimized.
+                    const tempKeypadHeight = numericKeypad.offsetHeight;
+                    const buffer = 10;
+                    document.body.style.paddingBottom = `${tempKeypadHeight + buffer + 10}px`; // A bit more buffer for the minimized state
                 }
                 // Scroll the currently focused input into view if it exists
                 if (currentFocusedInput) {
@@ -871,7 +938,7 @@
                     // --- END RESET ---
 
                     // Remove existing styling classes (including medal colors)
-                    row.classList.remove('eliminated', 'medal-gold', 'medal-silver', 'medal-bronze');
+                    row.classList.remove('eliminated');
                     
                     // --- Calculate and display score difference ---
                     let scoreDifferenceText = '';
@@ -1171,19 +1238,14 @@
             loadKeypadVisibilityState(); // Load keypad visibility state
 
             // Set initial keypad display based on loaded state
-            if (keypadVisible) {
-                numericKeypad.style.display = 'grid';
-                toggleKeypadButton.textContent = '非表示';
-            } else {
-                numericKeypad.style.display = 'none';
-                toggleKeypadButton.textContent = '表示';
-            }
-            adjustBodyPadding(); // Adjust padding after initial display setup
+            // Explicitly call toggleKeypadDisplay without forceShow to apply the correct initial state
+            toggleKeypadDisplay(); // This will apply the correct state based on `keypadVisible`
+
+            // updateAllScoresAndRanks needs to be called after loadAllData to refresh the UI with loaded data
+            updateAllScoresAndRanks();
             window.addEventListener('resize', adjustBodyPadding); 
             window.addEventListener('orientationchange', adjustBodyPadding);
 
-            // Initial update to ensure everything is rendered correctly based on loaded data
-            updateAllScoresAndRanks();
         });
     </script>
 </body>
