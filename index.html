@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10mエアライフル決勝スコアシート</title>
+    <title>10m Final Score Sheet</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -76,16 +76,6 @@
             opacity: 0.6;
             text-decoration: line-through;
         }
-        /* 最終順位のメダルカラー (削除済み) */
-        /* .medal-gold {
-            background-color: #ffc107 !important;
-        }
-        .medal-silver {
-            background-color: #c0c0c0 !important;
-        }
-        .medal-bronze {
-            background-color: #cd7f32 !important;
-        } */
         
         /* Sticky Column Styles */
         .sticky-col {
@@ -244,7 +234,14 @@
 </head>
 <body class="bg-gray-100 flex justify-center items-start min-h-screen py-8">
     <div class="container rounded-xl shadow-lg">
-        <h1 class="text-3xl font-extrabold text-center mb-6 text-blue-900">10mエアライフル決勝スコアシート</h1>
+        <div class="flex justify-between items-center mb-6">
+            <button id="reset-scores-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                スコアをリセット
+            </button>
+            <h1 class="text-3xl font-extrabold text-blue-900 flex-grow text-center">10m Final Score</h1>
+            <!-- Placeholder to balance the layout if needed -->
+            <div class="w-1/4"></div> 
+        </div>
         <div class="overflow-x-auto rounded-lg shadow-inner">
             <table class="w-full text-sm text-left text-gray-700">
                 <thead class="text-xs uppercase bg-blue-900 text-white rounded-t-lg">
@@ -607,6 +604,7 @@
             const genericInputs = document.querySelectorAll('input[data-type="name"], input[data-type="affiliation"]');
             const numericKeypad = document.getElementById('numeric-keypad');
             const toggleKeypadButton = document.getElementById('toggle-keypad-visibility'); // Get the new toggle button
+            const resetScoresButton = document.getElementById('reset-scores-button'); // Get the new reset button
             
             let currentFocusedInput = null;
             let isKeypadClicking = false; // Flag to ignore blur event when keypad is clicked
@@ -894,7 +892,6 @@
                         } else if (!allShootersCompletedFinalShot && shooter.rank >= 3) { // Intermediate state, gray out if eliminated
                             row.classList.add('eliminated');
                         }
-                        // Medal colors are no longer applied here.
                     } else {
                         // Provisional rank for active shooters (not yet officially ranked/eliminated)
                         // These don't get special styling beyond the default row.
@@ -988,6 +985,38 @@
                             shooter.isRanked = true;
                         }
                     });
+                }
+            };
+
+            // Function to reset all scores, names, and clear local storage
+            const resetAllScores = () => {
+                // Clear all input fields
+                shotInputs.forEach(input => {
+                    input.value = '';
+                    input.disabled = false; // Ensure all inputs are re-enabled
+                });
+                genericInputs.forEach(input => {
+                    input.value = '';
+                });
+
+                // Clear all read-only total and rank cells
+                seats.forEach(seat => {
+                    document.getElementById(`total-s1-${seat}`).textContent = '';
+                    document.getElementById(`total-s2-${seat}`).textContent = '';
+                    document.getElementById(`final-total-${seat}`).textContent = '';
+                    document.getElementById(`rank-${seat}`).textContent = '';
+                    document.getElementById(`shooter-${seat}`).classList.remove('eliminated'); // Remove any elimination styling
+                });
+
+                // Clear data from localStorage
+                localStorage.removeItem(KEYPAD_STORAGE_KEY);
+                
+                // Re-calculate and update the table (which will now be all zeros/empty)
+                updateAllScoresAndRanks();
+                
+                // Optionally, focus the first input for a new game
+                if (shotInputs.length > 0) {
+                    shotInputs[0].focus();
                 }
             };
 
@@ -1126,6 +1155,10 @@
                 });
             });
 
+            // Add event listener for the new reset button
+            resetScoresButton.addEventListener('click', resetAllScores);
+
+
             // Initial setup on page load
             loadAllData(); // Load any saved data first
             loadKeypadVisibilityState(); // Load keypad visibility state
@@ -1141,7 +1174,10 @@
             adjustBodyPadding(); // Adjust padding after initial display setup
             window.addEventListener('resize', adjustBodyPadding); 
             window.addEventListener('orientationchange', adjustBodyPadding);
+
+            // Initial update to ensure everything is rendered correctly based on loaded data
+            updateAllScoresAndRanks();
         });
     </script>
-</bod
+</body>
 </html>
